@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/landingpage';
+import ProductPage from './pages/ProductPage';
 // Placholders for other pages
 const Login = () => <div className="text-white text-center mt-20">Login Page</div>;
 const Cart = () => <div className="text-white text-center mt-20">Cart Page</div>;
@@ -20,7 +21,8 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/cart" element={<Cart />} />
-              </Routes>
+                <Route path="/product" element={<ProductPage />} />             
+                 </Routes>
             </main>
           </div>
         </Router>
