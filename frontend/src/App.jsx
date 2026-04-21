@@ -4,9 +4,11 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/landingpage';
-// Placholders for other pages
-const Login = () => <div className="text-white text-center mt-20">Login Page</div>;
-const Cart = () => <div className="text-white text-center mt-20">Cart Page</div>;
+import Login from './pages/login';
+import Register from './pages/Register';
+import Cart from './pages/Cart';
+import Profile from './pages/Profile';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return ( 
@@ -19,7 +21,10 @@ function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/cart" element={<Cart />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/dashboard" element={<Dashboard />} />
               </Routes>
             </main>
           </div>

@@ -1,8 +1,9 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
+from django.db import transaction
+from django.db.models import Q
 from .models import Category, Product, Cart, CartItem, Order, OrderItem, UserProfile
 from .serializers import (
     UserSerializer, UserProfileSerializer, CategorySerializer, 
@@ -20,8 +21,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = Product.objects.all()
         category_slug = self.request.query_params.get('category', None)
+        search = self.request.query_params.get('search', None)
         if category_slug is not None:
             queryset = queryset.filter(category__slug=category_slug)
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(description__icontains=search)
+            )
         return queryset
 
 class CartView(APIView):
@@ -39,9 +45,28 @@ class CartItemViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return CartItem.objects.filter(cart__user=self.request.user)
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
-        serializer.save(cart=cart)
+        product = serializer.validated_data['product']
+        quantity = serializer.validated_data.get('quantity', 1)
+
+        item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=product,
+            defaults={'quantity': quantity},
+        )
+
+        if not created:
+            item.quantity += quantity
+            item.save(update_fields=['quantity'])
+
+        response_serializer = self.get_serializer(item)
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -54,29 +79,45 @@ class OrderViewSet(viewsets.ModelViewSet):
         cart = Cart.objects.filter(user=request.user).first()
         if not cart or not cart.items.exists():
             return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Calculate total
-        total = sum(item.product.price * item.quantity for item in cart.items.all())
-        
-        # Create Order
-        order = Order.objects.create(
-            user=request.user,
-            total_price=total,
-            shipping_address=request.data.get('shipping_address', '')
-        )
-        
-        # Create Order Items
-        for item in cart.items.all():
-            OrderItem.objects.create(
-                order=order,
-                product=item.product,
-                price=item.product.price,
-                quantity=item.quantity
+
+        shipping_address = request.data.get('shipping_address', '').strip()
+        if not shipping_address:
+            return Response({"error": "Shipping address is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            cart_items = list(cart.items.select_related('product'))
+            unavailable = [
+                item.product.name
+                for item in cart_items
+                if item.product.stock < item.quantity
+            ]
+
+            if unavailable:
+                return Response(
+                    {"error": f"Not enough stock for: {', '.join(unavailable)}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            total = sum(item.product.price * item.quantity for item in cart_items)
+
+            order = Order.objects.create(
+                user=request.user,
+                total_price=total,
+                shipping_address=shipping_address,
             )
-        
-        # Clear Cart
-        cart.items.all().delete()
-        
+
+            for item in cart_items:
+                OrderItem.objects.create(
+                    order=order,
+                    product=item.product,
+                    price=item.product.price,
+                    quantity=item.quantity
+                )
+                item.product.stock -= item.quantity
+                item.product.save(update_fields=['stock'])
+
+            cart.items.all().delete()
+
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

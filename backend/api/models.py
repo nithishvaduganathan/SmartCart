@@ -29,6 +29,9 @@ class CartItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
 
+    class Meta:
+        unique_together = ('cart', 'product')
+
 class Order(models.Model):
     STATUS_CHOICES = (
         ('Pending', 'Pending'),
