@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Category, Product, Cart, CartItem, Order, OrderItem, UserProfile
+from .models import Category, Product, Cart, CartItem, Order, OrderItem, UserProfile, Payment
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,3 +60,20 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
         read_only_fields = ['user', 'total_price', 'status', 'created_at']
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['id', 'order', 'razorpay_payment_id', 'razorpay_order_id', 'amount', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+class CreateRazorpayOrderSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+class VerifyPaymentSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+    razorpay_order_id = serializers.CharField(max_length=100)
+    razorpay_payment_id = serializers.CharField(max_length=100)
+    razorpay_signature = serializers.CharField(max_length=255)
+

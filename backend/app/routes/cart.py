@@ -12,7 +12,7 @@ def get_cart(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    cart, _ = db.query(Cart).filter(Cart.user_id == current_user.id).first() or (None, None)
+    cart = db.query(Cart).filter(Cart.user_id == current_user.id).first()
     if not cart:
         cart = Cart(user_id=current_user.id)
         db.add(cart)

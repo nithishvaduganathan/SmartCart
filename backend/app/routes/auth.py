@@ -102,3 +102,8 @@ def refresh(current_user: User = Depends(get_current_user)):
         "token_type": "bearer",
         "user": UserResponse.from_orm(current_user)
     }
+
+@router.get("/profile", response_model=UserResponse)
+def get_profile(current_user: User = Depends(get_current_user)):
+    return UserResponse.from_orm(current_user)
+

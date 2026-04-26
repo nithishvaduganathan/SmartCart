@@ -7,15 +7,17 @@ import LandingPage from './pages/landingpage';
 import Login from './pages/login';
 import Register from './pages/Register';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import Payment from './pages/Payment';
 import Profile from './pages/Profile';
 import Dashboard from './pages/Dashboard';
 
 function App() {
-  return ( 
+  return (
     <AuthProvider>
       <CartProvider>
         <Router>
-          <div className="min-h-screen bg-gray-900 text-white font-sans">
+          <div className="min-h-screen bg-white text-gray-900 font-sans">
             <Navbar />
             <main>
               <Routes>
@@ -23,6 +25,8 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/payment/:orderId" element={<Payment />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/dashboard" element={<Dashboard />} />
               </Routes>
