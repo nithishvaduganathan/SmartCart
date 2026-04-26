@@ -5,7 +5,7 @@ from .views import (
     CategoryViewSet, ProductViewSet, CartView, CartItemViewSet,
     OrderViewSet, UserProfileView, RegisterView,
     CreateRazorpayOrderView, VerifyPaymentView, PaymentStatusView,
-    AdminDashboardView, AdminOrdersView
+    AdminDashboardView, AdminOrdersView, MockProcessPaymentView
 )
 
 router = DefaultRouter()
@@ -27,6 +27,7 @@ urlpatterns = [
     # Payment
     path('payments/create-razorpay-order/', CreateRazorpayOrderView.as_view(), name='create_razorpay_order'),
     path('payments/verify-payment/', VerifyPaymentView.as_view(), name='verify_payment'),
+    path('payments/mock-process/', MockProcessPaymentView.as_view(), name='mock_process_payment'),
     path('payments/<int:order_id>/status/', PaymentStatusView.as_view(), name='payment_status'),
 
     # Admin

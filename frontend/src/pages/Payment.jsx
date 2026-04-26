@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, AlertCircle, Loader, ShieldCheck } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader, ShieldCheck, CreditCard } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import Footer from '../components/Footer';
 
@@ -10,99 +10,56 @@ const Payment = () => {
     const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [paymentStatus, setPaymentStatus] = useState('pending');
+    const [paymentStatus, setPaymentStatus] = useState('pending'); // pending, processing, success, failed
     const [error, setError] = useState('');
-    const [scriptLoaded, setScriptLoaded] = useState(false);
+    const [cardNumber, setCardNumber] = useState('');
+    const [expiry, setExpiry] = useState('');
+    const [cvv, setCvv] = useState('');
 
     useEffect(() => {
         fetchOrder();
-        // Only add the script once
-        if (!window.Razorpay) {
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.async = true;
-            script.onload = () => setScriptLoaded(true);
-            script.onerror = () => setError('Failed to load Razorpay. Check your internet connection.');
-            document.body.appendChild(script);
-        } else {
-            setScriptLoaded(true);
-        }
     }, [orderId]);
 
     const fetchOrder = async () => {
         try {
             const res = await api.get(`orders/${orderId}/`);
             setOrder(res.data);
-        } catch { setError('Failed to load order'); }
-        finally { setLoading(false); }
+        } catch { 
+            setError('Failed to load order'); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
-    const handlePayment = async () => {
-        const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
-
-        // Guard: check Razorpay key
-        if (!razorpayKey) {
-            setError('Razorpay API key is missing. Please check your Vercel environment variables (VITE_RAZORPAY_KEY_ID).');
-            setPaymentStatus('failed');
-            return;
-        }
-        // Guard: check Razorpay script loaded
-        if (!window.Razorpay) {
-            setError('Razorpay is still loading. Please wait a moment and try again.');
+    const handleMockPayment = async (e) => {
+        e.preventDefault();
+        
+        // Basic frontend validation for the mock form
+        if (cardNumber.length < 16 || !expiry || cvv.length < 3) {
+            setError('Please enter valid mock card details (any 16 digits).');
             return;
         }
 
-        setPaymentStatus('processing'); setError('');
+        setPaymentStatus('processing'); 
+        setError('');
+
         try {
-            const orderRes = await api.post('payments/create-razorpay-order/', { order_id: orderId, amount: order.total_price });
-            const options = {
-                key: razorpayKey,
-                amount: orderRes.data.amount, currency: orderRes.data.currency,
-                name: 'SmartCart', description: `Order #${orderId}`,
-                order_id: orderRes.data.razorpay_order_id,
-                prefill: {
-                    name: "Test User",
-                    email: "test@example.com",
-                    contact: "9999999999"
-                },
-                handler: (response) => handlePaymentSuccess(response),
-                modal: {
-                    ondismiss: () => {
-                        setPaymentStatus('pending');
-                    }
-                },
-                theme: { color: '#2874f0' },
-            };
+            // Simulate network delay for realism
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Call the new backend mock processing endpoint
+            const res = await api.post('payments/mock-process/', { order_id: orderId });
             
-            const rzp = new window.Razorpay(options);
-            rzp.on('payment.failed', function (response) {
-                setError(`Payment failed: ${response.error.description || response.error.reason || 'Unknown error'}`);
-                setPaymentStatus('failed');
-            });
-            rzp.open();
+            if (res.data.success) {
+                setPaymentStatus('success');
+                setTimeout(() => navigate('/profile'), 3000);
+            } else {
+                throw new Error('Payment failed on server');
+            }
         } catch (err) {
-            // Show the actual backend error message
-            const errMsg = err.response?.data?.error
-                || err.response?.data?.detail
-                || err.message
-                || 'Could not connect to the payment server. Please check your backend is running.';
+            console.error('Mock Payment Error:', err);
+            const errMsg = err.response?.data?.error || err.message || 'Payment processing failed.';
             setError(errMsg);
-            setPaymentStatus('failed');
-        }
-    };
-
-    const handlePaymentSuccess = async (response) => {
-        try {
-            await api.post('payments/verify-payment/', {
-                order_id: orderId,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-            });
-            setPaymentStatus('success');
-            setTimeout(() => navigate('/profile'), 3000);
-        } catch (err) {
-            setError(err.response?.data?.error || 'Verification failed');
             setPaymentStatus('failed');
         }
     };
@@ -116,87 +73,137 @@ const Payment = () => {
 
     return (
         <div style={{ background: '#f1f3f6', minHeight: '100vh' }}>
-            <div style={{ maxWidth: '700px', margin: '0 auto', padding: '32px 16px' }}>
-                <div style={{ background: '#fff', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-                    {/* Success */}
+            <div style={{ maxWidth: '600px', margin: '40px auto', padding: '0 16px' }}>
+                <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+                    
+                    {/* Header */}
+                    <div style={{ padding: '24px', background: '#2874f0', color: 'white', textAlign: 'center' }}>
+                        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <ShieldCheck size={28} />
+                            SmartCart Secure Checkout
+                        </h1>
+                        <p style={{ margin: '8px 0 0 0', opacity: 0.9, fontSize: '14px' }}>Simulated Payment Gateway</p>
+                    </div>
+
+                    {/* Success State */}
                     {paymentStatus === 'success' && (
                         <div style={{ padding: '60px 40px', textAlign: 'center' }}>
-                            <CheckCircle size={64} color="#388e3c" style={{ margin: '0 auto 20px' }} />
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#212121', marginBottom: '8px' }}>Payment Successful!</h2>
-                            <p style={{ fontSize: '14px', color: '#878787', marginBottom: '12px' }}>Order #{orderId} has been confirmed</p>
-                            <p style={{ fontSize: '13px', color: '#878787' }}>Redirecting to your orders...</p>
+                            <CheckCircle size={72} color="#388e3c" style={{ margin: '0 auto 24px' }} />
+                            <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#212121', marginBottom: '8px' }}>Payment Successful!</h2>
+                            <p style={{ fontSize: '16px', color: '#878787', marginBottom: '16px' }}>Order #{orderId} has been confirmed</p>
+                            <div style={{ background: '#e8f5e9', color: '#2e7d32', padding: '12px', borderRadius: '4px', display: 'inline-block', marginBottom: '24px', fontWeight: 600 }}>
+                                Amount Paid: ₹{Number(order?.total_price).toLocaleString('en-IN')}
+                            </div>
+                            <p style={{ fontSize: '14px', color: '#878787' }}>Redirecting to your orders in a few seconds...</p>
                         </div>
                     )}
 
-                    {/* Failed */}
+                    {/* Failed State */}
                     {paymentStatus === 'failed' && (
                         <div style={{ padding: '60px 40px', textAlign: 'center' }}>
-                            <AlertCircle size={64} color="#ff6161" style={{ margin: '0 auto 20px' }} />
-                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#212121', marginBottom: '8px' }}>Payment Failed</h2>
-                            {error && <p style={{ color: '#c62828', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
+                            <AlertCircle size={72} color="#ff6161" style={{ margin: '0 auto 24px' }} />
+                            <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#212121', marginBottom: '8px' }}>Payment Failed</h2>
+                            {error && <p style={{ color: '#c62828', fontSize: '15px', marginBottom: '24px', background: '#ffebee', padding: '12px', borderRadius: '4px' }}>{error}</p>}
                             <button
-                                onClick={handlePayment}
-                                style={{ background: '#2874f0', color: '#fff', padding: '12px 40px', border: 'none', borderRadius: '3px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+                                onClick={() => setPaymentStatus('pending')}
+                                style={{ background: '#2874f0', color: '#fff', padding: '14px 40px', border: 'none', borderRadius: '4px', fontSize: '16px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}
                             >
-                                Retry Payment
+                                Try Again
                             </button>
                         </div>
                     )}
 
-                    {/* Pending */}
+                    {/* Pending / Processing State */}
                     {(paymentStatus === 'pending' || paymentStatus === 'processing') && order && (
-                        <>
-                            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0', background: '#f1f3f6' }}>
-                                <h2 style={{ fontSize: '18px', fontWeight: 500, color: '#878787', textTransform: 'uppercase' }}>Order Summary</h2>
+                        <div style={{ padding: '32px' }}>
+                            
+                            {/* Order Summary */}
+                            <div style={{ marginBottom: '32px', background: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '15px' }}>
+                                    <span style={{ color: '#555' }}>Order ID:</span>
+                                    <span style={{ fontWeight: 600, color: '#212121' }}>#{orderId}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e0e0e0', paddingTop: '12px', fontSize: '20px', fontWeight: 700 }}>
+                                    <span>Total Amount:</span>
+                                    <span style={{ color: '#2874f0' }}>₹{Number(order.total_price).toLocaleString('en-IN')}</span>
+                                </div>
                             </div>
 
-                            <div style={{ padding: '24px' }}>
-                                {/* Order info */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '14px' }}>
-                                    <span style={{ color: '#878787' }}>Order ID</span>
-                                    <span style={{ fontWeight: 600 }}>#{orderId}</span>
+                            {/* Mock Payment Form */}
+                            <form onSubmit={handleMockPayment}>
+                                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#212121', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CreditCard size={20} />
+                                    Enter Dummy Card Details
+                                </h3>
+                                
+                                <div style={{ marginBottom: '16px' }}>
+                                    <label style={{ display: 'block', fontSize: '13px', color: '#555', marginBottom: '6px', fontWeight: 500 }}>Card Number</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="1234 5678 9101 1121" 
+                                        value={cardNumber}
+                                        onChange={(e) => setCardNumber(e.target.value)}
+                                        maxLength="16"
+                                        style={{ width: '100%', padding: '12px', border: '1px solid #d4d5d9', borderRadius: '4px', fontSize: '15px', outline: 'none' }}
+                                        disabled={paymentStatus === 'processing'}
+                                    />
                                 </div>
-
-                                {/* Items */}
-                                {order.items?.map((item) => (
-                                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '14px', borderBottom: '1px solid #f0f0f0' }}>
-                                        <span>{item.product?.name || 'Item'} × {item.quantity}</span>
-                                        <span style={{ fontWeight: 500 }}>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                                
+                                <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '13px', color: '#555', marginBottom: '6px', fontWeight: 500 }}>Expiry (MM/YY)</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="12/25" 
+                                            value={expiry}
+                                            onChange={(e) => setExpiry(e.target.value)}
+                                            maxLength="5"
+                                            style={{ width: '100%', padding: '12px', border: '1px solid #d4d5d9', borderRadius: '4px', fontSize: '15px', outline: 'none' }}
+                                            disabled={paymentStatus === 'processing'}
+                                        />
                                     </div>
-                                ))}
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '16px', marginTop: '12px', borderTop: '1px dashed #e0e0e0', fontSize: '18px', fontWeight: 700 }}>
-                                    <span>Total</span>
-                                    <span style={{ color: '#212121' }}>₹{Number(order.total_price).toLocaleString('en-IN')}</span>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '13px', color: '#555', marginBottom: '6px', fontWeight: 500 }}>CVV</label>
+                                        <input 
+                                            type="password" 
+                                            placeholder="123" 
+                                            value={cvv}
+                                            onChange={(e) => setCvv(e.target.value)}
+                                            maxLength="3"
+                                            style={{ width: '100%', padding: '12px', border: '1px solid #d4d5d9', borderRadius: '4px', fontSize: '15px', outline: 'none' }}
+                                            disabled={paymentStatus === 'processing'}
+                                        />
+                                    </div>
                                 </div>
 
-                                {/* Shipping */}
-                                <div style={{ marginTop: '20px', padding: '12px 16px', background: '#f5f5f5', borderRadius: '3px' }}>
-                                    <p style={{ fontSize: '12px', color: '#878787', marginBottom: '4px' }}>Deliver to:</p>
-                                    <p style={{ fontSize: '14px', color: '#212121' }}>{order.shipping_address}</p>
-                                </div>
+                                {error && <p style={{ color: '#d32f2f', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
 
-                                {/* Pay Button */}
                                 <button
-                                    onClick={handlePayment}
-                                    disabled={paymentStatus === 'processing' || !scriptLoaded}
+                                    type="submit"
+                                    disabled={paymentStatus === 'processing'}
                                     style={{
-                                        marginTop: '24px', width: '100%', padding: '14px',
-                                        background: '#fb641b', color: '#fff', border: 'none',
-                                        borderRadius: '3px', fontSize: '16px', fontWeight: 600,
-                                        cursor: (paymentStatus === 'processing' || !scriptLoaded) ? 'not-allowed' : 'pointer',
-                                        opacity: (paymentStatus === 'processing' || !scriptLoaded) ? 0.7 : 1,
+                                        width: '100%', padding: '16px',
+                                        background: paymentStatus === 'processing' ? '#9dbcf2' : '#fb641b', 
+                                        color: '#fff', border: 'none',
+                                        borderRadius: '4px', fontSize: '16px', fontWeight: 700,
+                                        cursor: paymentStatus === 'processing' ? 'not-allowed' : 'pointer',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                        transition: 'background 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                     }}
                                 >
-                                    {paymentStatus === 'processing' ? <><Loader size={18} className="animate-spin" /> Processing...</> : !scriptLoaded ? 'Loading...' : 'PAY NOW'}
+                                    {paymentStatus === 'processing' ? (
+                                        <><Loader size={20} className="animate-spin" /> Processing Payment...</>
+                                    ) : (
+                                        `PAY ₹${Number(order.total_price).toLocaleString('en-IN')}`
+                                    )}
                                 </button>
-
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '16px', color: '#878787', fontSize: '12px' }}>
-                                    <ShieldCheck size={14} /> Secure payment powered by Razorpay
-                                </div>
-                            </div>
-                        </>
+                                
+                                <p style={{ textAlign: 'center', fontSize: '12px', color: '#878787', marginTop: '16px' }}>
+                                    This is a simulated gateway. Enter any dummy data to proceed.
+                                </p>
+                            </form>
+                        </div>
                     )}
                 </div>
             </div>

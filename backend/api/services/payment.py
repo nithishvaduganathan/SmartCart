@@ -78,9 +78,9 @@ class PaymentService:
                 # Fallback: manual HMAC-SHA256 verification
                 body = f'{razorpay_order_id}|{razorpay_payment_id}'
                 expected_signature = hmac.new(
-                    settings.RAZORPAY_SECRET_KEY.encode(),
-                    body.encode(),
-                    hashlib.sha256
+                    key=settings.RAZORPAY_SECRET_KEY.encode('utf-8'),
+                    msg=body.encode('utf-8'),
+                    digestmod=hashlib.sha256
                 ).hexdigest()
                 return hmac.compare_digest(expected_signature, razorpay_signature)
             except Exception as e2:
