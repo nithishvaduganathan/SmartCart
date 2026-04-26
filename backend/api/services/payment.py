@@ -64,17 +64,28 @@ class PaymentService:
             bool: True if signature is valid, False otherwise
         """
         try:
-            body = f'{razorpay_order_id}|{razorpay_payment_id}'
-            expected_signature = hmac.new(
-                settings.RAZORPAY_SECRET_KEY.encode(),
-                body.encode(),
-                hashlib.sha256
-            ).hexdigest()
-            
-            return expected_signature == razorpay_signature
+            # Use Razorpay SDK built-in verifier (most reliable)
+            params_dict = {
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': razorpay_payment_id,
+                'razorpay_signature': razorpay_signature,
+            }
+            self.client.utility.verify_payment_signature(params_dict)
+            return True
         except Exception as e:
-            print(f"Signature verification error: {str(e)}")
-            return False
+            print(f"Razorpay SDK verification failed: {str(e)}, trying manual HMAC...")
+            try:
+                # Fallback: manual HMAC-SHA256 verification
+                body = f'{razorpay_order_id}|{razorpay_payment_id}'
+                expected_signature = hmac.new(
+                    settings.RAZORPAY_SECRET_KEY.encode(),
+                    body.encode(),
+                    hashlib.sha256
+                ).hexdigest()
+                return hmac.compare_digest(expected_signature, razorpay_signature)
+            except Exception as e2:
+                print(f"Manual HMAC verification error: {str(e2)}")
+                return False
     
     def fetch_payment_details(self, payment_id):
         """

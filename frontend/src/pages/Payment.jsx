@@ -12,13 +12,21 @@ const Payment = () => {
     const [loading, setLoading] = useState(true);
     const [paymentStatus, setPaymentStatus] = useState('pending');
     const [error, setError] = useState('');
+    const [scriptLoaded, setScriptLoaded] = useState(false);
 
     useEffect(() => {
         fetchOrder();
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.async = true;
-        document.body.appendChild(script);
+        // Only add the script once
+        if (!window.Razorpay) {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.onload = () => setScriptLoaded(true);
+            script.onerror = () => setError('Failed to load Razorpay. Check your internet connection.');
+            document.body.appendChild(script);
+        } else {
+            setScriptLoaded(true);
+        }
     }, [orderId]);
 
     const fetchOrder = async () => {
@@ -30,11 +38,25 @@ const Payment = () => {
     };
 
     const handlePayment = async () => {
+        const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+
+        // Guard: check Razorpay key
+        if (!razorpayKey) {
+            setError('Razorpay API key is missing. Please check your Vercel environment variables (VITE_RAZORPAY_KEY_ID).');
+            setPaymentStatus('failed');
+            return;
+        }
+        // Guard: check Razorpay script loaded
+        if (!window.Razorpay) {
+            setError('Razorpay is still loading. Please wait a moment and try again.');
+            return;
+        }
+
         setPaymentStatus('processing'); setError('');
         try {
             const orderRes = await api.post('payments/create-razorpay-order/', { order_id: orderId, amount: order.total_price });
             const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+                key: razorpayKey,
                 amount: orderRes.data.amount, currency: orderRes.data.currency,
                 name: 'SmartCart', description: `Order #${orderId}`,
                 order_id: orderRes.data.razorpay_order_id,
@@ -44,17 +66,27 @@ const Payment = () => {
                     contact: "9999999999"
                 },
                 handler: (response) => handlePaymentSuccess(response),
+                modal: {
+                    ondismiss: () => {
+                        setPaymentStatus('pending');
+                    }
+                },
                 theme: { color: '#2874f0' },
             };
             
             const rzp = new window.Razorpay(options);
             rzp.on('payment.failed', function (response) {
-                setError(response.error.description || 'Payment failed');
+                setError(`Payment failed: ${response.error.description || response.error.reason || 'Unknown error'}`);
                 setPaymentStatus('failed');
             });
             rzp.open();
         } catch (err) {
-            setError(err.response?.data?.error || 'Payment failed');
+            // Show the actual backend error message
+            const errMsg = err.response?.data?.error
+                || err.response?.data?.detail
+                || err.message
+                || 'Could not connect to the payment server. Please check your backend is running.';
+            setError(errMsg);
             setPaymentStatus('failed');
         }
     };
@@ -147,17 +179,17 @@ const Payment = () => {
                                 {/* Pay Button */}
                                 <button
                                     onClick={handlePayment}
-                                    disabled={paymentStatus === 'processing'}
+                                    disabled={paymentStatus === 'processing' || !scriptLoaded}
                                     style={{
                                         marginTop: '24px', width: '100%', padding: '14px',
                                         background: '#fb641b', color: '#fff', border: 'none',
                                         borderRadius: '3px', fontSize: '16px', fontWeight: 600,
-                                        cursor: paymentStatus === 'processing' ? 'not-allowed' : 'pointer',
-                                        opacity: paymentStatus === 'processing' ? 0.7 : 1,
+                                        cursor: (paymentStatus === 'processing' || !scriptLoaded) ? 'not-allowed' : 'pointer',
+                                        opacity: (paymentStatus === 'processing' || !scriptLoaded) ? 0.7 : 1,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                     }}
                                 >
-                                    {paymentStatus === 'processing' ? <><Loader size={18} className="animate-spin" /> Processing...</> : 'PAY NOW'}
+                                    {paymentStatus === 'processing' ? <><Loader size={18} className="animate-spin" /> Processing...</> : !scriptLoaded ? 'Loading...' : 'PAY NOW'}
                                 </button>
 
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '16px', color: '#878787', fontSize: '12px' }}>
