@@ -14,13 +14,17 @@ from .serializers import (
 from .services.payment import PaymentService
 from .services.email import EmailService
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+from .permissions import IsAdminUserOrReadOnly
+
+class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsAdminUserOrReadOnly]
 
-class ProductViewSet(viewsets.ReadOnlyModelViewSet):
+class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    permission_classes = [IsAdminUserOrReadOnly]
 
     def get_queryset(self):
         queryset = Product.objects.all()

@@ -12,6 +12,8 @@ export const CartProvider = ({ children }) => {
     const { api, token } = useContext(AuthContext);
     const [cartItems, setCartItems] = useState([]);
     const [cartTotal, setCartTotal] = useState(0);
+    const [discountCode, setDiscountCode] = useState(null);
+    const [discountAmount, setDiscountAmount] = useState(0);
 
     const fetchCart = useCallback(async () => {
         if (!token) {
@@ -25,7 +27,11 @@ export const CartProvider = ({ children }) => {
 
             if (res.data && res.data.items) {
                 setCartItems(res.data.items);
-                setCartTotal(getCartTotal(res.data.items));
+                const total = getCartTotal(res.data.items);
+                setCartTotal(total);
+                // Reset discount when cart changes
+                setDiscountCode(null);
+                setDiscountAmount(0);
             }
         } catch (error) {
             console.error('Failed to fetch cart', error);
@@ -45,7 +51,7 @@ export const CartProvider = ({ children }) => {
             const existingItem = cartItems.find((item) => item.product.id === productId);
 
             if (existingItem) {
-                await api.patch(`cart-items/${existingItem.id}/`, {
+                await api.put(`cart-items/${existingItem.id}/`, {
                     quantity: existingItem.quantity + 1,
                 });
             } else {
@@ -69,7 +75,7 @@ export const CartProvider = ({ children }) => {
             if (quantity < 1) {
                 await api.delete(`cart-items/${cartItemId}/`);
             } else {
-                await api.patch(`cart-items/${cartItemId}/`, { quantity });
+                await api.put(`cart-items/${cartItemId}/`, { quantity });
             }
 
             await fetchCart();
@@ -90,17 +96,51 @@ export const CartProvider = ({ children }) => {
     const clearCart = useCallback(() => {
         setCartItems([]);
         setCartTotal(0);
+        setDiscountCode(null);
+        setDiscountAmount(0);
     }, []);
+
+    const applyDiscount = useCallback(async (code) => {
+        try {
+            const response = await api.post('discounts/validate/', {
+                code: code.toUpperCase(),
+                order_amount: cartTotal
+            });
+
+            if (response.data) {
+                setDiscountCode(response.data.code);
+                setDiscountAmount(response.data.discount_amount);
+                return { ok: true, message: 'Discount applied successfully', data: response.data };
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.detail || 'Invalid discount code';
+            setDiscountCode(null);
+            setDiscountAmount(0);
+            return { ok: false, message: errorMsg };
+        }
+    }, [api, cartTotal]);
+
+    const removeDiscount = useCallback(() => {
+        setDiscountCode(null);
+        setDiscountAmount(0);
+    }, []);
+
+    const finalTotal = cartTotal - discountAmount;
 
     const value = useMemo(() => ({
         cartItems,
         cartTotal,
+        discountCode,
+        discountAmount,
+        finalTotal,
         addToCart,
         updateQuantity,
         removeFromCart,
         clearCart,
         fetchCart,
-    }), [addToCart, cartItems, cartTotal, clearCart, fetchCart, removeFromCart, updateQuantity]);
+        applyDiscount,
+        removeDiscount,
+    }), [addToCart, cartItems, cartTotal, discountCode, discountAmount, finalTotal, clearCart, fetchCart, removeFromCart, updateQuantity, applyDiscount, removeDiscount]);
 
     return (
         <CartContext.Provider value={value}>

@@ -41,7 +41,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         try {
             await login(loginForm.username, loginForm.password);
             onClose();
-            navigate('/dashboard');
+            navigate('/products');
         } catch (err) {
             const message = err.response?.data?.detail || 'Unable to sign in with those credentials.';
             setError(message);
@@ -67,7 +67,7 @@ const LoginModal = ({ isOpen, onClose }) => {
                 registerForm.password
             );
             onClose();
-            navigate('/dashboard');
+            navigate('/products');
         } catch (err) {
             const data = err.response?.data;
             setError(data?.error || data?.username?.[0] || 'Unable to create your account.');

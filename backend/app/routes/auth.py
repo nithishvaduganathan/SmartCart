@@ -25,7 +25,14 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         )
 
     # Create new user
-    hashed_password = get_password_hash(user_data.password)
+    try:
+        hashed_password = get_password_hash(user_data.password)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc)
+        ) from exc
+
     user = User(
         username=user_data.username,
         email=user_data.email,

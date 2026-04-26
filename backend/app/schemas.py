@@ -135,16 +135,19 @@ class OrderBase(BaseModel):
     shipping_address: str
 
 class OrderCreate(OrderBase):
-    pass
+    discount_code: Optional[str] = None
 
 class OrderResponse(OrderBase):
     id: int
     user_id: int
     total_price: float
+    discount_code: Optional[str] = None
+    discount_amount: float = 0
     status: str
     razorpay_order_id: Optional[str] = None
     razorpay_payment_id: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
     items: List[OrderItemResponse]
 
     class Config:

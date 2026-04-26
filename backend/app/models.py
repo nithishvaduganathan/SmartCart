@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Float, ForeignKey, DateTime, Enum, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Text, Float, ForeignKey, DateTime, Enum, UniqueConstraint, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -79,6 +79,24 @@ class CartItem(Base):
     cart = relationship("Cart", back_populates="items")
     product = relationship("Product", back_populates="cart_items")
 
+class DiscountType(str, enum.Enum):
+    PERCENTAGE = "percentage"
+    FIXED = "fixed"
+
+class Discount(Base):
+    __tablename__ = "discount"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(50), unique=True, index=True)
+    discount_type = Column(Enum(DiscountType), default=DiscountType.PERCENTAGE)
+    discount_value = Column(Float)
+    max_uses = Column(Integer, default=0)
+    uses_count = Column(Integer, default=0)
+    min_order_amount = Column(Float, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class OrderStatus(str, enum.Enum):
     PENDING = "Pending"
     PAID = "Paid"
@@ -92,11 +110,14 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("user.id"))
     total_price = Column(Float)
+    discount_code = Column(String(50), nullable=True)
+    discount_amount = Column(Float, default=0)
     status = Column(Enum(OrderStatus), default=OrderStatus.PENDING)
     shipping_address = Column(Text)
     razorpay_order_id = Column(String(100), nullable=True)
     razorpay_payment_id = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")

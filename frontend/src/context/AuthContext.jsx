@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
     const fetchProfile = useCallback(async () => {
         try {
             const res = await api.get('auth/profile/');
-            setUser(res.data.user);
+            setUser(res.data);
         } catch (error) {
             console.error('Failed to fetch profile', error);
             logout();
@@ -50,28 +50,42 @@ export const AuthProvider = ({ children }) => {
 
     const login = useCallback(async (username, password) => {
         const res = await axios.post(`${API_BASE_URL}auth/login/`, { username, password });
-        setToken(res.data.access);
-        localStorage.setItem('access_token', res.data.access);
+        const accessToken = res.data.access_token ?? res.data.access;
+        const refreshToken = res.data.refresh_token ?? res.data.refresh;
 
-        if (res.data.refresh) {
-            localStorage.setItem('refresh_token', res.data.refresh);
+        if (!accessToken) {
+            throw new Error('Missing access token in login response.');
+        }
+
+        setToken(accessToken);
+        localStorage.setItem('access_token', accessToken);
+
+        if (refreshToken) {
+            localStorage.setItem('refresh_token', refreshToken);
         }
 
         const profile = await axios.get(`${API_BASE_URL}auth/profile/`, {
-            headers: { Authorization: `Bearer ${res.data.access}` },
+            headers: { Authorization: `Bearer ${accessToken}` },
         });
-        setUser(profile.data.user);
+        setUser(profile.data);
         setLoading(false);
-        return profile.data.user;
+        return profile.data;
     }, []);
 
     const register = useCallback(async (username, email, password) => {
         const res = await axios.post(`${API_BASE_URL}auth/register/`, { username, email, password });
-        setToken(res.data.access);
-        localStorage.setItem('access_token', res.data.access);
+        const accessToken = res.data.access_token ?? res.data.access;
+        const refreshToken = res.data.refresh_token ?? res.data.refresh;
 
-        if (res.data.refresh) {
-            localStorage.setItem('refresh_token', res.data.refresh);
+        if (!accessToken) {
+            throw new Error('Missing access token in registration response.');
+        }
+
+        setToken(accessToken);
+        localStorage.setItem('access_token', accessToken);
+
+        if (refreshToken) {
+            localStorage.setItem('refresh_token', refreshToken);
         }
 
         setUser(res.data.user);

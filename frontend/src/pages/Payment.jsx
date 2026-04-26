@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader, ShieldCheck } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import Footer from '../components/Footer';
 
 const Payment = () => {
     const { orderId } = useParams();
@@ -10,240 +10,165 @@ const Payment = () => {
     const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [paymentStatus, setPaymentStatus] = useState('pending'); // pending, processing, success, failed
+    const [paymentStatus, setPaymentStatus] = useState('pending');
     const [error, setError] = useState('');
 
     useEffect(() => {
         fetchOrder();
-        loadRazorpayScript();
-    }, [orderId]);
-
-    const fetchOrder = async () => {
-        try {
-            const response = await api.get(`orders/${orderId}/`);
-            setOrder(response.data);
-        } catch (err) {
-            setError('Failed to load order details');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadRazorpayScript = () => {
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
         document.body.appendChild(script);
+    }, [orderId]);
+
+    const fetchOrder = async () => {
+        try {
+            const res = await api.get(`orders/${orderId}/`);
+            setOrder(res.data);
+        } catch { setError('Failed to load order'); }
+        finally { setLoading(false); }
     };
 
     const handlePayment = async () => {
-        setPaymentStatus('processing');
-        setError('');
-
+        setPaymentStatus('processing'); setError('');
         try {
-            // Create Razorpay order
-            const orderResponse = await api.post('payments/create-razorpay-order/', {
-                order_id: orderId,
-                amount: order.total_price,
-            });
-
+            const orderRes = await api.post('payments/create-razorpay-order/', { order_id: orderId, amount: order.total_price });
             const options = {
                 key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-                amount: orderResponse.data.amount,
-                currency: orderResponse.data.currency,
-                name: 'SmartCart',
-                description: `Order #${orderId}`,
-                order_id: orderResponse.data.razorpay_order_id,
-                handler: (response) => handlePaymentSuccess(response),
+                amount: orderRes.data.amount, currency: orderRes.data.currency,
+                name: 'SmartCart', description: `Order #${orderId}`,
+                order_id: orderRes.data.razorpay_order_id,
                 prefill: {
-                    email: order.user?.email || '',
-                    contact: order.user?.profile?.phone || '',
+                    name: "Test User",
+                    email: "test@example.com",
+                    contact: "9999999999"
                 },
-                notes: {
-                    order_id: orderId,
-                },
-                theme: {
-                    color: '#4f46e5',
-                },
+                handler: (response) => handlePaymentSuccess(response),
+                theme: { color: '#2874f0' },
             };
-
-            const razorpay = new window.Razorpay(options);
-            razorpay.open();
+            
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                setError(response.error.description || 'Payment failed');
+                setPaymentStatus('failed');
+            });
+            rzp.open();
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to initiate payment');
+            setError(err.response?.data?.error || 'Payment failed');
             setPaymentStatus('failed');
         }
     };
 
     const handlePaymentSuccess = async (response) => {
         try {
-            // Verify payment
-            const verifyResponse = await api.post('payments/verify-payment/', {
+            await api.post('payments/verify-payment/', {
                 order_id: orderId,
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
             });
-
             setPaymentStatus('success');
-
-            // Redirect to dashboard after 3 seconds
-            setTimeout(() => {
-                navigate('/dashboard');
-            }, 3000);
+            setTimeout(() => navigate('/profile'), 3000);
         } catch (err) {
-            setError(err.response?.data?.error || 'Payment verification failed');
+            setError(err.response?.data?.error || 'Verification failed');
             setPaymentStatus('failed');
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            </div>
-        );
-    }
-
-    if (!order) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <p className="text-xl text-gray-600 mb-4">Order not found</p>
-                    <button
-                        onClick={() => navigate('/')}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg"
-                    >
-                        Go Back
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f3f6' }}>
+            <div style={{ width: '40px', height: '40px', border: '3px solid #e0e0e0', borderTopColor: '#2874f0', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12">
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-lg shadow p-8"
-                >
-                    {/* Success State */}
+        <div style={{ background: '#f1f3f6', minHeight: '100vh' }}>
+            <div style={{ maxWidth: '700px', margin: '0 auto', padding: '32px 16px' }}>
+                <div style={{ background: '#fff', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                    {/* Success */}
                     {paymentStatus === 'success' && (
-                        <div className="text-center">
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 200 }}
-                                className="mb-6"
-                            >
-                                <CheckCircle className="w-20 h-20 text-green-500 mx-auto" />
-                            </motion.div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
-                            <p className="text-gray-600 mb-6">Your order has been placed successfully</p>
-                            <p className="text-lg font-semibold text-gray-900 mb-8">
-                                Order ID: <span className="text-indigo-600">#{orderId}</span>
-                            </p>
-                            <p className="text-gray-600 mb-8">Redirecting to confirmation page...</p>
+                        <div style={{ padding: '60px 40px', textAlign: 'center' }}>
+                            <CheckCircle size={64} color="#388e3c" style={{ margin: '0 auto 20px' }} />
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#212121', marginBottom: '8px' }}>Payment Successful!</h2>
+                            <p style={{ fontSize: '14px', color: '#878787', marginBottom: '12px' }}>Order #{orderId} has been confirmed</p>
+                            <p style={{ fontSize: '13px', color: '#878787' }}>Redirecting to your orders...</p>
                         </div>
                     )}
 
-                    {/* Failed State */}
+                    {/* Failed */}
                     {paymentStatus === 'failed' && (
-                        <div className="text-center">
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 200 }}
-                                className="mb-6"
-                            >
-                                <AlertCircle className="w-20 h-20 text-red-500 mx-auto" />
-                            </motion.div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Failed</h1>
-                            {error && <p className="text-red-600 mb-6">{error}</p>}
-                            <p className="text-gray-600 mb-8">Please try again or contact support</p>
+                        <div style={{ padding: '60px 40px', textAlign: 'center' }}>
+                            <AlertCircle size={64} color="#ff6161" style={{ margin: '0 auto 20px' }} />
+                            <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#212121', marginBottom: '8px' }}>Payment Failed</h2>
+                            {error && <p style={{ color: '#c62828', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
                             <button
                                 onClick={handlePayment}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-semibold"
+                                style={{ background: '#2874f0', color: '#fff', padding: '12px 40px', border: 'none', borderRadius: '3px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
                             >
                                 Retry Payment
                             </button>
                         </div>
                     )}
 
-                    {/* Pending State */}
-                    {(paymentStatus === 'pending' || paymentStatus === 'processing') && (
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">Review Your Order</h1>
+                    {/* Pending */}
+                    {(paymentStatus === 'pending' || paymentStatus === 'processing') && order && (
+                        <>
+                            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0', background: '#f1f3f6' }}>
+                                <h2 style={{ fontSize: '18px', fontWeight: 500, color: '#878787', textTransform: 'uppercase' }}>Order Summary</h2>
+                            </div>
 
-                            {/* Order Summary */}
-                            <div className="mb-8 pb-8 border-b">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">Order Details</h2>
-                                <div className="space-y-2 text-gray-600">
-                                    <div className="flex justify-between">
-                                        <span>Order ID:</span>
-                                        <span className="font-semibold text-gray-900">#{orderId}</span>
+                            <div style={{ padding: '24px' }}>
+                                {/* Order info */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '14px' }}>
+                                    <span style={{ color: '#878787' }}>Order ID</span>
+                                    <span style={{ fontWeight: 600 }}>#{orderId}</span>
+                                </div>
+
+                                {/* Items */}
+                                {order.items?.map((item) => (
+                                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '14px', borderBottom: '1px solid #f0f0f0' }}>
+                                        <span>{item.product?.name || 'Item'} × {item.quantity}</span>
+                                        <span style={{ fontWeight: 500 }}>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span>Total Amount:</span>
-                                        <span className="font-semibold text-indigo-600 text-lg">
-                                            ₹{order.total_price.toFixed(2)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Status:</span>
-                                        <span className="font-semibold text-yellow-600">{order.status}</span>
-                                    </div>
+                                ))}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '16px', marginTop: '12px', borderTop: '1px dashed #e0e0e0', fontSize: '18px', fontWeight: 700 }}>
+                                    <span>Total</span>
+                                    <span style={{ color: '#212121' }}>₹{Number(order.total_price).toLocaleString('en-IN')}</span>
+                                </div>
+
+                                {/* Shipping */}
+                                <div style={{ marginTop: '20px', padding: '12px 16px', background: '#f5f5f5', borderRadius: '3px' }}>
+                                    <p style={{ fontSize: '12px', color: '#878787', marginBottom: '4px' }}>Deliver to:</p>
+                                    <p style={{ fontSize: '14px', color: '#212121' }}>{order.shipping_address}</p>
+                                </div>
+
+                                {/* Pay Button */}
+                                <button
+                                    onClick={handlePayment}
+                                    disabled={paymentStatus === 'processing'}
+                                    style={{
+                                        marginTop: '24px', width: '100%', padding: '14px',
+                                        background: '#fb641b', color: '#fff', border: 'none',
+                                        borderRadius: '3px', fontSize: '16px', fontWeight: 600,
+                                        cursor: paymentStatus === 'processing' ? 'not-allowed' : 'pointer',
+                                        opacity: paymentStatus === 'processing' ? 0.7 : 1,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    }}
+                                >
+                                    {paymentStatus === 'processing' ? <><Loader size={18} className="animate-spin" /> Processing...</> : 'PAY NOW'}
+                                </button>
+
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '16px', color: '#878787', fontSize: '12px' }}>
+                                    <ShieldCheck size={14} /> Secure payment powered by Razorpay
                                 </div>
                             </div>
-
-                            {/* Items */}
-                            <div className="mb-8 pb-8 border-b">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">Items</h2>
-                                <div className="space-y-3">
-                                    {order.items && order.items.map((item) => (
-                                        <div key={item.id} className="flex justify-between text-gray-700">
-                                            <span>
-                                                {item.product.name} x {item.quantity}
-                                            </span>
-                                            <span className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Shipping Address */}
-                            <div className="mb-8">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">Shipping Address</h2>
-                                <p className="text-gray-700 whitespace-pre-wrap">{order.shipping_address}</p>
-                            </div>
-
-                            {/* Payment Button */}
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={handlePayment}
-                                disabled={paymentStatus === 'processing'}
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors text-lg"
-                            >
-                                {paymentStatus === 'processing' ? (
-                                    <>
-                                        <Loader className="w-5 h-5 animate-spin" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    'Pay with Razorpay'
-                                )}
-                            </motion.button>
-
-                            <p className="text-xs text-gray-500 text-center mt-4">
-                                You will be redirected to Razorpay secure payment gateway
-                            </p>
-                        </div>
+                        </>
                     )}
-                </motion.div>
+                </div>
             </div>
+            <Footer />
         </div>
     );
 };
