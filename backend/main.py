@@ -15,22 +15,27 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Add your frontend URLs
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(auth.router)
-app.include_router(products.router)
-app.include_router(categories.router)
-app.include_router(cart.router)
-app.include_router(orders.router)
-app.include_router(profile.router)
-app.include_router(payments.router)
+# Include routers with /api prefix
+app.include_router(auth.router, prefix="/api")
+app.include_router(products.router, prefix="/api")
+app.include_router(categories.router, prefix="/api")
+app.include_router(cart.router, prefix="/api")
+app.include_router(orders.router, prefix="/api")
+app.include_router(profile.router, prefix="/api")
+app.include_router(payments.router, prefix="/api")
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+@app.get("/api/docs")
+def api_docs():
+    return {"message": "API Documentation available at /docs"}
+
 
