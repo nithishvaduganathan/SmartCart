@@ -20,11 +20,13 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAdminUserOrReadOnly]
+    pagination_class = None
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAdminUserOrReadOnly]
+    pagination_class = None
 
     def get_queryset(self):
         queryset = Product.objects.all()
@@ -334,7 +336,7 @@ class AdminDashboardView(APIView):
             return Response({"error": "Admin access required"}, status=status.HTTP_403_FORBIDDEN)
 
         total_orders = Order.objects.count()
-        total_revenue = sum(order.total_price for order in Order.objects.filter(status='Paid'))
+        total_revenue = sum(order.total_price for order in Order.objects.filter(status='Delivered'))
         total_users = User.objects.count()
         pending_orders = Order.objects.filter(status='Pending').count()
 
