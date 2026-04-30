@@ -99,9 +99,9 @@ const ProductDetail = () => {
                 </div>
 
                 <div style={{ background: '#fff', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: '24px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                    <div className="product-detail-layout">
                         {/* Left — Image */}
-                        <div>
+                        <div className="product-detail-image-container">
                             <div style={{
                                 border: '1px solid #e0e0e0',
                                 borderRadius: '4px',

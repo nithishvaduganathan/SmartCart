@@ -64,7 +64,7 @@ function Profile() {
     return (
         <div style={{ background: '#f1f3f6', minHeight: '100vh' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '16px', alignItems: 'flex-start' }}>
+                <div className="profile-layout">
                     {/* Sidebar */}
                     <div style={{ background: '#fff', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
                         {/* User Card */}

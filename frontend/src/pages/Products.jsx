@@ -91,16 +91,12 @@ function Products() {
                     {search && <><span>›</span><span style={{ color: '#212121' }}>"{search}"</span></>}
                 </div>
 
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div className="products-layout">
                     {/* Sidebar Filters */}
-                    <div style={{
-                        width: '260px',
-                        flexShrink: 0,
+                    <div className="products-sidebar" style={{
                         background: '#fff',
                         borderRadius: '4px',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                        position: 'sticky',
-                        top: '104px',
                         display: showFilters ? 'block' : 'none',
                     }}>
                         <div style={{ padding: '16px', borderBottom: '1px solid #e0e0e0' }}>

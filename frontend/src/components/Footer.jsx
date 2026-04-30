@@ -53,13 +53,7 @@ const Footer = () => {
                 padding: '0 16px',
             }}>
                 {/* Main Footer */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                    gap: '32px',
-                    paddingBottom: '32px',
-                    borderBottom: '1px solid #364152',
-                }}>
+                <div className="footer-grid">
                     {footerSections.map((section) => (
                         <div key={section.title}>
                             <h4 style={{

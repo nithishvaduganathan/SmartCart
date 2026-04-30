@@ -73,7 +73,7 @@ function Cart() {
                         </Link>
                     </div>
                 ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '16px', alignItems: 'flex-start' }}>
+                    <div className="cart-layout">
                         {/* Cart Items */}
                         <div style={{ background: '#fff', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
                             <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>

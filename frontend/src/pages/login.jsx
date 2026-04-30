@@ -25,10 +25,9 @@ function Login() {
 
     return (
         <div style={{ background: '#f1f3f6', minHeight: 'calc(100vh - 100px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
-            <div style={{ display: 'flex', maxWidth: '750px', width: '100%', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', borderRadius: '4px', overflow: 'hidden', minHeight: '480px' }}>
+            <div className="auth-card-layout">
                 {/* Left Blue Panel */}
-                <div style={{
-                    width: '280px', flexShrink: 0,
+                <div className="auth-left-panel" style={{
                     background: '#2874f0', padding: '40px 32px',
                     display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                     color: '#fff',

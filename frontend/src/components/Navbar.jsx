@@ -45,15 +45,7 @@ const Navbar = () => {
                 background: '#93f028ff',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             }}>
-                <div style={{
-                    maxWidth: '1400px',
-                    margin: '0 auto',
-                    padding: '0 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    height: '56px',
-                    gap: '24px',
-                }}>
+                <div className="responsive-nav-inner">
                     {/* Logo */}
                     <Link to="/" style={{
                         display: 'flex',
@@ -79,11 +71,7 @@ const Navbar = () => {
                     </Link>
 
                     {/* Search Bar */}
-                    <form onSubmit={handleSearch} style={{
-                        flex: 1,
-                        maxWidth: '580px',
-                        position: 'relative',
-                    }}>
+                    <form onSubmit={handleSearch} className="responsive-nav-search">
                         <input
                             type="text"
                             value={searchQuery}
@@ -116,7 +104,7 @@ const Navbar = () => {
                     </form>
 
                     {/* Right Actions */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <div className="nav-right-actions">
                         {/* User / Login */}
                         {user ? (
                             <div ref={dropdownRef} style={{ position: 'relative' }}>
@@ -267,8 +255,12 @@ const Navbar = () => {
                 background: '#fff',
                 borderBottom: '1px solid #e0e0e0',
                 overflowX: 'auto',
+                scrollbarWidth: 'none', // For Firefox
             }}>
-                <div style={{
+                <style>{`
+                    .cat-strip::-webkit-scrollbar { display: none; }
+                `}</style>
+                <div className="cat-strip" style={{
                     maxWidth: '1400px',
                     margin: '0 auto',
                     display: 'flex',

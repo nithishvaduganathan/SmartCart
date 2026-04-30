@@ -48,7 +48,7 @@ const AdminOrders = () => {
     return (
         <div style={{ background: '#f1f3f6', minHeight: '100vh' }}>
             <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
                     <Link to="/admin/dashboard" style={{ color: '#2874f0', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                         <ChevronLeft size={20} />
                     </Link>

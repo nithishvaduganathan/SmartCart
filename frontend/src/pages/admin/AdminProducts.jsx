@@ -106,7 +106,7 @@ const AdminProducts = () => {
     return (
         <div style={{ background: '#f1f3f6', minHeight: '100vh' }}>
             <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <Link to="/admin/dashboard" style={{ color: '#2874f0', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
                             <ChevronLeft size={20} />

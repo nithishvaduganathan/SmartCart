@@ -125,7 +125,7 @@ const AdminDashboard = () => {
 
             <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 24px' }}>
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
                     <div>
                         <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <Activity color="#3b82f6" /> Analytics Dashboard
@@ -134,7 +134,7 @@ const AdminDashboard = () => {
                     </div>
                     
                     {/* Quick Links */}
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {[
                             { label: 'Orders', to: '/admin/orders', icon: <Package size={18} />, color: '#3b82f6' },
                             { label: 'Products', to: '/admin/products', icon: <Box size={18} />, color: '#8b5cf6' },
